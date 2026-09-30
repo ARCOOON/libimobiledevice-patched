@@ -1,10 +1,6 @@
 --- src/libirecovery.c
 +++ src/libirecovery.c
-@@ -1070,6 +1070,7 @@
- 	{ "iPhone16,2", "D74AP", "iPhone 15 Pro Max", IRECV_DEVICE_IPHONE },
- 	{ "iPhone17,1", "D93AP", "iPhone 16 Pro", IRECV_DEVICE_IPHONE },
- 	{ "iPhone17,2", "D94AP", "iPhone 16 Pro Max", IRECV_DEVICE_IPHONE },
-+	{ "iPhone18,5", "V159AP", "iPhone 17e", IRECV_DEVICE_IPHONE },
- 	{ "iPhone17,3", "D47AP", "iPhone 16", IRECV_DEVICE_IPHONE },
+@@ -1070,2 +1070,3 @@
  	{ "iPhone17,4", "D48AP", "iPhone 16 Plus", IRECV_DEVICE_IPHONE },
++	{ "iPhone18,5", "V159AP", "iPhone 17e", IRECV_DEVICE_IPHONE },
  	{ NULL, NULL, NULL, 0 }
