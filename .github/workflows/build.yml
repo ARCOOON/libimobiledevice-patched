@@ -62,7 +62,10 @@ jobs:
                 # Check if file exists to handle empty directories safely
                 if [ -f "$patch_file" ]; then
                   echo "--> Applying patch: $(basename "$patch_file")"
-                  git apply -p0 "$patch_file"
+                  # 1. Attempt Git apply with heavy whitespace leniency
+                  git apply -p0 --ignore-whitespace "$patch_file" || \
+                  # 2. Fallback to GNU patch utility which is inherently more forgiving with shifting line numbers
+                  patch -p0 --ignore-whitespace --fuzz=3 < "$patch_file"
                 fi
               done
             fi
@@ -144,7 +147,10 @@ jobs:
               for patch_file in "$WORKSPACE_DIR/patches/$REPO"/*.patch; do
                 if [ -f "$patch_file" ]; then
                   echo "--> Applying patch: $(basename "$patch_file")"
-                  git apply -p0 "$patch_file"
+                  # 1. Attempt Git apply with heavy whitespace leniency
+                  git apply -p0 --ignore-whitespace "$patch_file" || \
+                  # 2. Fallback to GNU patch utility which is inherently more forgiving with shifting line numbers
+                  patch -p0 --ignore-whitespace --fuzz=3 < "$patch_file"
                 fi
               done
             fi
