@@ -3,10 +3,45 @@ name: Build Complete libimobiledevice Stack (Win & Linux)
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 0'
+    - cron: '0 * * * *' # Polls upstream repositories every hour
 
 jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.check.outputs.build }}
+    steps:
+      - name: Fetch Upstream Commits
+        run: |
+          REPOS=(libplist libimobiledevice-glue libusbmuxd libtatsu libimobiledevice libideviceactivation libirecovery idevicerestore ideviceinstaller)
+          > current_hashes.txt
+          for repo in "${REPOS[@]}"; do
+            git ls-remote "https://github.com/libimobiledevice/$repo.git" HEAD | awk '{print $1}' >> current_hashes.txt
+          done
+          echo "Current Upstream HEADs:"
+          cat current_hashes.txt
+
+      - name: Check State Cache
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: current_hashes.txt
+          key: upstream-state-${{ hashFiles('current_hashes.txt') }}
+
+      - name: Evaluate Build Necessity
+        id: check
+        run: |
+          if [ "${{ steps.cache.outputs.cache-hit }}" != "true" ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "build=true" >> $GITHUB_OUTPUT
+            echo "New upstream commits detected or manual run triggered. Proceeding with build."
+          else
+            echo "build=false" >> $GITHUB_OUTPUT
+            echo "No upstream changes detected. Skipping build."
+          fi
+
   build-windows:
+    needs: check-upstream
+    if: needs.check-upstream.outputs.build == 'true'
     runs-on: windows-latest
     defaults:
       run:
@@ -21,7 +56,7 @@ jobs:
           msystem: UCRT64
           update: true
           install: >-
-            git make autoconf automake libtool pkg-config patch
+            git make autoconf automake libtool pkg-config
             mingw-w64-ucrt-x86_64-gcc
             mingw-w64-ucrt-x86_64-openssl
             mingw-w64-ucrt-x86_64-libzip
@@ -31,7 +66,7 @@ jobs:
             mingw-w64-ucrt-x86_64-libxml2
             zip
 
-      - name: Compile Source Stack with Dynamic Patching (Windows)
+      - name: Compile Source Stack with Dynamic Scripts (Windows)
         run: |
           export WORKSPACE_DIR="$(pwd)"
           export PREFIX="$WORKSPACE_DIR/build_output"
@@ -41,31 +76,21 @@ jobs:
           
           mkdir -p "$PREFIX"
 
-          # Reusable compilation and patching function
           build_repo() {
             local REPO=$1
             shift
             local EXTRA_ARGS="$@"
 
-            echo ""
-            echo "========================================"
-            echo "Building $REPO..."
-            echo "========================================"
-            echo ""
+            echo "::group::Building $REPO"
             
             git clone --depth 1 "https://github.com/libimobiledevice/$REPO.git"
             cd "$REPO"
             
-            # Dynamically detect and apply patches if a corresponding folder exists
             if [ -d "$WORKSPACE_DIR/patches/$REPO" ]; then
-              for patch_file in "$WORKSPACE_DIR/patches/$REPO"/*.patch; do
-                # Check if file exists to handle empty directories safely
-                if [ -f "$patch_file" ]; then
-                  echo "--> Applying patch: $(basename "$patch_file")"
-                  # 1. Attempt Git apply with heavy whitespace leniency
-                  git apply -p0 --ignore-whitespace "$patch_file" || \
-                  # 2. Fallback to GNU patch utility which is inherently more forgiving with shifting line numbers
-                  patch -p0 --ignore-whitespace --fuzz=3 < "$patch_file"
+              for script in "$WORKSPACE_DIR/patches/$REPO"/*.sh; do
+                if [ -f "$script" ]; then
+                  echo "--> Executing injection script: $(basename "$script")"
+                  bash "$script"
                 fi
               done
             fi
@@ -74,9 +99,10 @@ jobs:
             make -j$(nproc)
             make install
             cd "$WORKSPACE_DIR"
+
+            echo "::endgroup::"
           }
 
-          # Execute builds sequentially
           build_repo "libplist" "--without-cython"
           build_repo "libimobiledevice-glue"
           build_repo "libusbmuxd"
@@ -109,6 +135,8 @@ jobs:
           retention-days: 14
 
   build-linux:
+    needs: check-upstream
+    if: needs.check-upstream.outputs.build == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -117,9 +145,9 @@ jobs:
       - name: Install Build Dependencies (Ubuntu)
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential autoconf automake libtool pkg-config libssl-dev libcurl4-openssl-dev libreadline-dev libzip-dev libxml2-dev check
+          sudo apt-get install -y build-essential autoconf automake libtool pkg-config libssl-dev libcurl4-openssl-dev libreadline-dev libzip-dev libxml2-dev check libusb-1.0-0-dev
 
-      - name: Compile Source Stack with Dynamic Patching (Linux)
+      - name: Compile Source Stack with Dynamic Scripts (Linux)
         run: |
           export WORKSPACE_DIR="$(pwd)"
           export PREFIX="$WORKSPACE_DIR/build_output"
@@ -134,23 +162,16 @@ jobs:
             shift
             local EXTRA_ARGS="$@"
 
-            echo ""
-            echo "========================================"
-            echo "Building $REPO..."
-            echo "========================================"
-            echo ""
+            echo "::group::Building $REPO"
             
             git clone --depth 1 "https://github.com/libimobiledevice/$REPO.git"
             cd "$REPO"
             
             if [ -d "$WORKSPACE_DIR/patches/$REPO" ]; then
-              for patch_file in "$WORKSPACE_DIR/patches/$REPO"/*.patch; do
-                if [ -f "$patch_file" ]; then
-                  echo "--> Applying patch: $(basename "$patch_file")"
-                  # 1. Attempt Git apply with heavy whitespace leniency
-                  git apply -p0 --ignore-whitespace "$patch_file" || \
-                  # 2. Fallback to GNU patch utility which is inherently more forgiving with shifting line numbers
-                  patch -p0 --ignore-whitespace --fuzz=3 < "$patch_file"
+              for script in "$WORKSPACE_DIR/patches/$REPO"/*.sh; do
+                if [ -f "$script" ]; then
+                  echo "--> Executing injection script: $(basename "$script")"
+                  bash "$script"
                 fi
               done
             fi
@@ -159,9 +180,10 @@ jobs:
             make -j$(nproc)
             make install
             cd "$WORKSPACE_DIR"
+
+            echo "::endgroup::"
           }
           
-          # Execute builds sequentially
           build_repo "libplist" "--without-cython"
           build_repo "libimobiledevice-glue"
           build_repo "libusbmuxd"
