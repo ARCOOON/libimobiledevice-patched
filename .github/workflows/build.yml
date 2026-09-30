@@ -23,7 +23,7 @@ jobs:
 
       - name: Check State Cache
         id: cache
-        uses: actions/cache@v4
+        uses: actions/cache@v7
         with:
           path: current_hashes.txt
           key: upstream-state-${{ hashFiles('current_hashes.txt') }}
@@ -128,7 +128,7 @@ jobs:
           cd release_package && zip -r ../libimobiledevice-windows-latest.zip *
 
       - name: Upload Windows Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: libimobiledevice-windows-binaries
           path: libimobiledevice-windows-latest.zip
@@ -140,7 +140,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Build Dependencies (Ubuntu)
         run: |
@@ -200,7 +200,7 @@ jobs:
           tar -czvf libimobiledevice-linux-latest.tar.gz -C "$PREFIX" bin lib
 
       - name: Upload Linux Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: libimobiledevice-linux-binaries
           path: libimobiledevice-linux-latest.tar.gz
