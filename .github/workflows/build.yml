@@ -3,11 +3,11 @@ name: Build Complete libimobiledevice Stack (Win & Linux)
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 * * * *' # Polls upstream repositories every hour
+    - cron: '0 * * * *'
 
 jobs:
   check-upstream:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       build: ${{ steps.check.outputs.build }}
     steps:
@@ -56,7 +56,7 @@ jobs:
           msystem: UCRT64
           update: true
           install: >-
-            git make autoconf automake libtool pkg-config
+            git make autoconf automake libtool pkg-config patch
             mingw-w64-ucrt-x86_64-gcc
             mingw-w64-ucrt-x86_64-openssl
             mingw-w64-ucrt-x86_64-libzip
@@ -109,7 +109,7 @@ jobs:
           build_repo "libtatsu"
           build_repo "libimobiledevice" "--without-cython"
           build_repo "libideviceactivation"
-          build_repo "libirecovery"
+          build_repo "libirecovery" "--without-udev"
           build_repo "idevicerestore"
           build_repo "ideviceinstaller"
 
@@ -137,7 +137,7 @@ jobs:
   build-linux:
     needs: check-upstream
     if: needs.check-upstream.outputs.build == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -190,7 +190,7 @@ jobs:
           build_repo "libtatsu"
           build_repo "libimobiledevice" "--without-cython"
           build_repo "libideviceactivation"
-          build_repo "libirecovery"
+          build_repo "libirecovery" "--without-udev"
           build_repo "idevicerestore"
           build_repo "ideviceinstaller"
 
