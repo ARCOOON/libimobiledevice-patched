@@ -131,11 +131,11 @@ jobs:
             shift
             local EXTRA_ARGS="$@"
 
-            echo.
+            echo ""
             echo "========================================"
             echo "Building $REPO..."
             echo "========================================"
-            echo.
+            echo ""
             
             git clone --depth 1 "https://github.com/libimobiledevice/$REPO.git"
             cd "$REPO"
