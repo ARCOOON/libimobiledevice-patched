@@ -75,8 +75,8 @@ jobs:
           build_repo "libplist" "--without-cython"
           build_repo "libimobiledevice-glue"
           build_repo "libusbmuxd"
-          build_repo "libimobiledevice" "--without-cython"
           build_repo "libtatsu"
+          build_repo "libimobiledevice" "--without-cython"
           build_repo "libideviceactivation"
           build_repo "libirecovery"
           build_repo "idevicerestore"
@@ -118,7 +118,7 @@ jobs:
         run: |
           export WORKSPACE_DIR="$(pwd)"
           export PREFIX="$WORKSPACE_DIR/build_output"
-          export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+          export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PREFIX/lib64/pkgconfig:$PREFIX/lib/x86_64-linux-gnu/pkgconfig"
           export CFLAGS="-I$PREFIX/include -O2"
           export LDFLAGS="-L$PREFIX/lib -Wl,-rpath='\$\$ORIGIN/../lib'"
           
@@ -150,12 +150,13 @@ jobs:
             make install
             cd "$WORKSPACE_DIR"
           }
-
+          
+          # Execute builds sequentially
           build_repo "libplist" "--without-cython"
           build_repo "libimobiledevice-glue"
           build_repo "libusbmuxd"
-          build_repo "libimobiledevice" "--without-cython"
           build_repo "libtatsu"
+          build_repo "libimobiledevice" "--without-cython"
           build_repo "libideviceactivation"
           build_repo "libirecovery"
           build_repo "idevicerestore"
