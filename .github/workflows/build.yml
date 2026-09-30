@@ -18,24 +18,24 @@ jobs:
       - name: Setup MSYS2 and MinGW-w64 Toolchain
         uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: UCRT64
           update: true
           install: >-
             git make autoconf automake libtool pkg-config patch
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-openssl
-            mingw-w64-x86_64-libzip
-            mingw-w64-x86_64-curl
-            mingw-w64-x86_64-readline
-            mingw-w64-x86_64-zlib
-            mingw-w64-x86_64-libxml2
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-openssl
+            mingw-w64-ucrt-x86_64-libzip
+            mingw-w64-ucrt-x86_64-curl
+            mingw-w64-ucrt-x86_64-readline
+            mingw-w64-ucrt-x86_64-zlib
+            mingw-w64-ucrt-x86_64-libxml2
             zip
 
       - name: Compile Source Stack with Dynamic Patching (Windows)
         run: |
           export WORKSPACE_DIR="$(pwd)"
           export PREFIX="$WORKSPACE_DIR/build_output"
-          export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:/mingw64/lib/pkgconfig"
+          export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:/ucrt64/lib/pkgconfig"
           export CFLAGS="-I$PREFIX/include -O2"
           export LDFLAGS="-L$PREFIX/lib"
           
@@ -46,10 +46,12 @@ jobs:
             local REPO=$1
             shift
             local EXTRA_ARGS="$@"
-            
+
+            echo ""
             echo "========================================"
             echo "Building $REPO..."
             echo "========================================"
+            echo ""
             
             git clone --depth 1 "https://github.com/libimobiledevice/$REPO.git"
             cd "$REPO"
@@ -60,7 +62,7 @@ jobs:
                 # Check if file exists to handle empty directories safely
                 if [ -f "$patch_file" ]; then
                   echo "--> Applying patch: $(basename "$patch_file")"
-                  git apply "$patch_file"
+                  git apply -p0 "$patch_file"
                 fi
               done
             fi
@@ -91,7 +93,7 @@ jobs:
           cp "$PREFIX/bin/"*.dll release_package/ 2>/dev/null || true
           
           for file in release_package/*.exe release_package/*.dll; do
-            ldd "$file" | grep -i '/mingw64/bin/' | awk '{print $3}' | xargs -I '{}' cp -n '{}' release_package/ || true
+            ldd "$file" | grep -i '/ucrt64/bin/' | awk '{print $3}' | xargs -I '{}' cp -n '{}' release_package/ || true
           done
           
           cd release_package && zip -r ../libimobiledevice-windows-latest.zip *
@@ -128,10 +130,12 @@ jobs:
             local REPO=$1
             shift
             local EXTRA_ARGS="$@"
-            
+
+            echo.
             echo "========================================"
             echo "Building $REPO..."
             echo "========================================"
+            echo.
             
             git clone --depth 1 "https://github.com/libimobiledevice/$REPO.git"
             cd "$REPO"
@@ -140,7 +144,7 @@ jobs:
               for patch_file in "$WORKSPACE_DIR/patches/$REPO"/*.patch; do
                 if [ -f "$patch_file" ]; then
                   echo "--> Applying patch: $(basename "$patch_file")"
-                  git apply "$patch_file"
+                  git apply -p0 "$patch_file"
                 fi
               done
             fi
